@@ -48,6 +48,8 @@ db.serialize(() => {
     )
   `);
 
+
+
   db.run(`
     CREATE TABLE IF NOT EXISTS messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,6 +60,29 @@ db.serialize(() => {
       FOREIGN KEY (conversation_id) REFERENCES conversations(id)
     )
   `);
+});
+
+// Get user settings
+app.get('/api/settings/:userId', (req, res) => {
+  const { userId } = req.params;
+  db.get('SELECT openai_api_key FROM user_settings WHERE user_id = ?', [userId], (err, settings) => {
+    if (err) return res.status(500).json({ error: 'Server error' });
+    res.json(settings || { openai_api_key: null });
+  });
+});
+
+// Save user settings
+app.post('/api/settings', (req, res) => {
+  const { userId, openai_api_key } = req.body;
+
+  db.run(
+    'INSERT OR REPLACE INTO user_settings (user_id, openai_api_key, updated_at) VALUES (?, ?, datetime("now"))',
+    [userId, openai_api_key],
+    (err) => {
+      if (err) return res.status(500).json({ error: 'Server error' });
+      res.json({ success: true });
+    }
+  );
 });
 
 // Health check endpoint
